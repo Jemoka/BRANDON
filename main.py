@@ -3,11 +3,13 @@ from collections import defaultdict
 
 import torch
 import numpy as np
-
-import wandb
-
+import torch.nn.functional as F
 from nltk.corpus import brown
 from nltk.corpus import sinica_treebank
+
+from tqdm import tqdm
+
+import wandb
 
 MIDSIZE = 128
 LAMBDA = 0.2
@@ -29,6 +31,8 @@ LR = 3e-3
 #      of the middle layer plus reconstruction error
 # 4. ok, now, autoencode two target languages. Say
 #      chinese and english. Let's see what happens.
+
+tensify = lambda x: torch.tensor(x)
 
 # Get a bunch of English
 english_words = list(set(brown.words()))
@@ -52,6 +56,41 @@ dictionary = dict(dictionary)
 # Reverse it!
 reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 
+# Create bags of words
+chinese_sents_indexes = [[dictionary[j] for j in i] for i in chinese_sents][:5000]
+english_sents_indexes = [[dictionary[j] for j in i] for i in english_sents][:5000]
+
+english_sents_bags = []
+chinese_sents_bags = []
+
+# One hot encode and bag
+# English bags
+for sent in tqdm(english_sents_indexes):
+    # Create temp array
+    temp = [0 for _ in range(num_words)]
+    # Create temp array of stuff
+    for word in sent:
+        temp[word] += 1
+    # append
+    english_sents_bags.append(temp)
+
+# Chinese bags
+for sent in tqdm(chinese_sents_indexes):
+    # Create temp array
+    temp = [0 for _ in range(num_words)]
+    # Create temp array of stuff
+    for word in sent:
+        temp[word] += 1
+    # append
+    chinese_sents_bags.append(temp)
+
+# Combine bags together
+input_data = english_sents_bags+chinese_sents_bags
+# Create batches
+input_data_batches = []
+# Create groups of batches
+for i in range(0, len(input_data)-BATCH_SIZE):
+    input_data_batches.append(input_data[i:i+BATCH_SIZE])
 
 
 
