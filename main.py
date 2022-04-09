@@ -1,3 +1,6 @@
+import random
+from collections import defaultdict
+
 import torch
 import numpy as np
 
@@ -5,6 +8,12 @@ import wandb
 
 from nltk.corpus import brown
 from nltk.corpus import sinica_treebank
+
+MIDSIZE = 128
+LAMBDA = 0.2
+BATCH_SIZE = 4
+EPOCHS = 3
+LR = 3e-3
 
 # Prove Brandon wrong with me, and if we don't
 # heck, we get a paper out of it.
@@ -22,13 +31,27 @@ from nltk.corpus import sinica_treebank
 #      chinese and english. Let's see what happens.
 
 # Get a bunch of English
-english_words = set([i.lower() for i in brown.words()])
-english_words = list(english_words)
+english_words = list(set(brown.words()))
+english_sents = brown.sents()
 
 # Get a bunch of Chinese
 chinese_words = list(set(sinica_treebank.words()))
+chinese_sents = sinica_treebank.sents()
 
-# Word dimention
+# Word dimention size
+num_words = len(english_words)+len(chinese_words)
+
+# Create indexing of the words using a collection
+# Create auto counting up defaultdict collection
+dictionary = defaultdict(lambda:len(dictionary))
+# Iterate through words and initialize
+for word in english_words + chinese_words:
+    dictionary[word]
+# Freeze
+dictionary = dict(dictionary)
+# Reverse it!
+reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+
 
 
 
