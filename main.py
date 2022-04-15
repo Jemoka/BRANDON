@@ -23,8 +23,8 @@ config = {
     "lr": 3e-3
 }
 
-run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-# run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+# run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 
 run = run.config
 
@@ -150,6 +150,7 @@ class Autoencoder(nn.Module):
 
 # Instatiate a model
 model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
+wandb.watch(model)
 
 # Instantiate an optimizer!
 optim = Adam(model.parameters(), lr=LR)
@@ -159,7 +160,7 @@ for i in range(EPOCHS):
     random.shuffle(input_data_batches)
     print(f"Training epoch {i}")
     # Iterate through batches
-    for batch in tqdm(input_data_batches):
+    for e, batch in enumerate(tqdm(input_data_batches)):
         # Pass data through
         res = model(tensify(batch).to(DEVICE))
         # Backpropergate! Ha!
@@ -167,6 +168,10 @@ for i in range(EPOCHS):
         # Step!
         optim.step()
         optim.zero_grad()
+
+        # log?
+        if e % 10 == 0:
+            wandb.log({"loss": res["loss"].cpu().item()})
 
 # quantumish — Today at 3:17 PM
 # "coding" - jack, again
