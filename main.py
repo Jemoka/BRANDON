@@ -5,6 +5,7 @@ from collections import defaultdict
 import torch
 import numpy as np
 import torch.nn as nn
+from torch.optim import Adam
 import torch.nn.functional as F
 from nltk.corpus import brown
 from nltk.corpus import sinica_treebank
@@ -128,7 +129,33 @@ class Autoencoder(nn.Module):
         return {"logits": encoded_result,
                 "loss": (1-self.gamma)*rec_loss + gamma*entropy}
 
+    def decode(self, x) -> any:
+        # Decode and return
+        return F.relu(self.out_layer(x))
+
 # Instatiate a model
 model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
 
+# Instantiate an optimizer!
+optim = Adam(model.parameters(), lr=LR)
 
+# For every batch, train!
+for _ in range(EPOCHS):
+    random.shuffle(input_data_batches)
+    # Iterate through batches
+    for batch in input_data_batches:
+        # Pass data through
+        res = model(tensify(batch).to(DEVICE))
+        # Backpropergate! Ha!
+        res["loss"].backward()
+        # Step!
+        optim.step()
+        optim.zero_grad()
+
+# quantumish — Today at 3:17 PM
+# "coding" - jack, again
+# ghatch — Today at 3:19 PM
+# Action Research!
+# not
+# like
+# programming
