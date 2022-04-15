@@ -1,8 +1,10 @@
+from math import gamma
 import random
 from collections import defaultdict
 
 import torch
 import numpy as np
+import torch.nn as nn
 import torch.nn.functional as F
 from nltk.corpus import brown
 from nltk.corpus import sinica_treebank
@@ -12,10 +14,12 @@ from tqdm import tqdm
 import wandb
 
 MIDSIZE = 128
-LAMBDA = 0.2
+GAMMA = 0.2
 BATCH_SIZE = 4
 EPOCHS = 3
 LR = 3e-3
+
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Prove Brandon wrong with me, and if we don't
 # heck, we get a paper out of it.
@@ -24,15 +28,15 @@ LR = 3e-3
 # 1. create a autoencoding mechanism, f(g(x))
 #      where null space of g muuuch smaller than
 #      the null space of x or f.
-# 2. create a discount factor gamma=0.1
+# 2. create a shift factor gamma=0.1
 # 3. create a loss function
-#      gamma*-1*log(g(x)+(1-gamma)*-1*x*log(f(g(x))
+#      (1-gamma)*rec_loss+(gamma)*-1*x*log(f(g(x))
 #      this is the gamma-scaled sum between the entropy
 #      of the middle layer plus reconstruction error
 # 4. ok, now, autoencode two target languages. Say
 #      chinese and english. Let's see what happens.
 
-tensify = lambda x: torch.tensor(x)
+tensify = lambda x: torch.tensor(x).float()
 
 # Get a bunch of English
 english_words = list(set(brown.words()))
@@ -86,11 +90,45 @@ for sent in tqdm(chinese_sents_indexes):
 
 # Combine bags together
 input_data = english_sents_bags+chinese_sents_bags
+# Shuffle the data
+random.shuffle(input_data)
 # Create batches
 input_data_batches = []
 # Create groups of batches
 for i in range(0, len(input_data)-BATCH_SIZE):
     input_data_batches.append(input_data[i:i+BATCH_SIZE])
 
+# Create the model
+class Autoencoder(nn.Module):
+
+    def __init__(self, vocab_size:int, midsize:int, gamma:float=0.2, epsilon:float=1e-7) -> None:
+        super().__init__()
+
+        self.vocab_size = vocab_size
+        self.midsize = midsize
+        self.gamma = gamma
+        self.epsilon = epsilon
+
+        self.in_layer = nn.Linear(vocab_size, midsize)
+        self.out_layer = nn.Linear(midsize, vocab_size)
+
+    def forward(self, x) -> dict:
+        # Generate results
+        encoded_result = F.relu(self.in_layer(x))
+        output_result = F.relu(self.out_layer(encoded_result))
+
+        # Create reconstruction loss
+        rec_loss = torch.mean((output_result-x)**2)
+        entropy = torch.mean(-1*torch.log(encoded_result+self.epsilon))
+
+        # Give gamma
+        gamma = self.gamma
+
+        # Return final loss
+        return {"logits": encoded_result,
+                "loss": (1-self.gamma)*rec_loss + gamma*entropy}
+
+# Instatiate a model
+model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
 
 
