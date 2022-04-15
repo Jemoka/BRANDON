@@ -14,11 +14,26 @@ from tqdm import tqdm
 
 import wandb
 
-MIDSIZE = 128
-GAMMA = 0.2
-BATCH_SIZE = 4
-EPOCHS = 3
-LR = 3e-3
+# Create the config
+config = {
+    "midsize": 128,
+    "gamma": 0.2,
+    "batch_size": 4,
+    "epochs": 3,
+    "lr": 3e-3
+}
+
+run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+# run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+
+run = run.config
+
+# Unroll out the constants
+MIDSIZE = run.midsize
+GAMMA = run.gamma
+BATCH_SIZE = run.batch_size
+EPOCHS = run.epochs
+LR = run.lr
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -140,10 +155,11 @@ model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
 optim = Adam(model.parameters(), lr=LR)
 
 # For every batch, train!
-for _ in range(EPOCHS):
+for i in range(EPOCHS):
     random.shuffle(input_data_batches)
+    print(f"Training epoch {i}")
     # Iterate through batches
-    for batch in input_data_batches:
+    for batch in tqdm(input_data_batches):
         # Pass data through
         res = model(tensify(batch).to(DEVICE))
         # Backpropergate! Ha!
