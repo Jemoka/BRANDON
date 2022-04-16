@@ -26,14 +26,14 @@ config = {
 # run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 
-run = run.config
+config = run.config
 
 # Unroll out the constants
-MIDSIZE = run.midsize
-GAMMA = run.gamma
-BATCH_SIZE = run.batch_size
-EPOCHS = run.epochs
-LR = run.lr
+MIDSIZE = config.midsize
+GAMMA = config.gamma
+BATCH_SIZE = config.batch_size
+EPOCHS = config.epochs
+LR = config.lr
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -150,7 +150,7 @@ class Autoencoder(nn.Module):
 
 # Instatiate a model
 model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
-wandb.watch(model)
+run.watch(model)
 
 # Instantiate an optimizer!
 optim = Adam(model.parameters(), lr=LR)
@@ -172,6 +172,9 @@ for i in range(EPOCHS):
         # log?
         if e % 10 == 0:
             wandb.log({"loss": res["loss"].cpu().item()})
+
+# Save the model
+torch.save(model, f"./models/{run.name}")
 
 # quantumish — Today at 3:17 PM
 # "coding" - jack, again
