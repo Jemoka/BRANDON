@@ -19,15 +19,15 @@ TRAINING=True
 # Create the config
 config = {
     "midsize": 128,
-    "gamma": 0.2,
+    "gamma": 0,
     "batch_size": 4,
-    "epochs": 3,
+    "epochs": 4,
     "lr": 3e-3,
 }
 
 if TRAINING:
-    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-    # run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+    # run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 else:
     run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 
@@ -135,7 +135,7 @@ class Autoencoder(nn.Module):
 
     def forward(self, x) -> dict:
         # Generate results
-        encoded_result = F.relu(self.in_layer(x))
+        encoded_result = F.relu(self.in_layer(x), dim=1)
         output_result = F.relu(self.out_layer(encoded_result))
 
         # Create reconstruction loss
@@ -185,7 +185,7 @@ if TRAINING:
 
 else:
     # load the model
-    model = torch.load("./models/drawn-wildflower-2")
+    model = torch.load("./models/trim-totem-4")
     
     # instantiate model
     model.eval()
