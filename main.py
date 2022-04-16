@@ -14,17 +14,22 @@ from tqdm import tqdm
 
 import wandb
 
+TRAINING=True
+
 # Create the config
 config = {
     "midsize": 128,
     "gamma": 0.2,
     "batch_size": 4,
     "epochs": 3,
-    "lr": 3e-3
+    "lr": 3e-3,
 }
 
-# run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+if TRAINING:
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+    # run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+else:
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 
 config = run.config
 
@@ -135,7 +140,7 @@ class Autoencoder(nn.Module):
 
         # Create reconstruction loss
         rec_loss = torch.mean((output_result-x)**2)
-        entropy = torch.mean(-1*torch.log(encoded_result+self.epsilon))
+        entropy = torch.mean(-1*torch.log(encoded_result+self.epsilon)*(encoded_result+self.epsilon))
 
         # Give gamma
         gamma = self.gamma
@@ -148,33 +153,56 @@ class Autoencoder(nn.Module):
         # Decode and return
         return F.relu(self.out_layer(x))
 
-# Instatiate a model
-model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
-run.watch(model)
+if TRAINING:
+    # Instatiate a model
+    model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
+    model.train()
+    run.watch(model)
 
-# Instantiate an optimizer!
-optim = Adam(model.parameters(), lr=LR)
+    # Instantiate an optimizer!
+    optim = Adam(model.parameters(), lr=LR)
 
-# For every batch, train!
-for i in range(EPOCHS):
-    random.shuffle(input_data_batches)
-    print(f"Training epoch {i}")
-    # Iterate through batches
-    for e, batch in enumerate(tqdm(input_data_batches)):
-        # Pass data through
-        res = model(tensify(batch).to(DEVICE))
-        # Backpropergate! Ha!
-        res["loss"].backward()
-        # Step!
-        optim.step()
-        optim.zero_grad()
+    # For every batch, train!
+    for i in range(EPOCHS):
+        random.shuffle(input_data_batches)
+        print(f"Training epoch {i}")
+        # Iterate through batches
+        for e, batch in enumerate(tqdm(input_data_batches)):
+            # Pass data through
+            res = model(tensify(batch).to(DEVICE))
+            # Backpropergate! Ha!
+            res["loss"].backward()
+            # Step!
+            optim.step()
+            optim.zero_grad()
 
-        # log?
-        if e % 10 == 0:
-            wandb.log({"loss": res["loss"].cpu().item()})
+            # log?
+            if e % 10 == 0:
+                wandb.log({"loss": res["loss"].cpu().item()})
 
-# Save the model
-torch.save(model, f"./models/{run.name}")
+    # Save the model
+    torch.save(model, f"./models/{run.name}")
+
+else:
+    # load the model
+    model = torch.load("./models/drawn-wildflower-2")
+    
+    # instantiate model
+    model.eval()
+
+    # load stuff
+    def getbin(word):
+        # get the id
+        word_id = dictionary[word]
+        # create temp array
+        temp = [0 for _ in range(num_words)]
+        # set positive result as 1
+        temp[word_id] = 1
+
+        return tensify(temp)
+
+    # breakpoint?
+    breakpoint()
 
 # quantumish — Today at 3:17 PM
 # "coding" - jack, again
