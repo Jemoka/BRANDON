@@ -1,5 +1,6 @@
 from math import gamma
 import random
+import pickle
 from collections import defaultdict
 
 import torch
@@ -22,7 +23,7 @@ config = {
     "gamma": 0,
     "batch_size": 4,
     "epochs": 4,
-    "lr": 3e-3,
+    "lr": 1e-3,
 }
 
 if TRAINING:
@@ -82,8 +83,8 @@ dictionary = dict(dictionary)
 reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 
 # Create bags of words
-chinese_sents_indexes = [[dictionary[j] for j in i] for i in chinese_sents][:5000]
-english_sents_indexes = [[dictionary[j] for j in i] for i in english_sents][:5000]
+chinese_sents_indexes = [[dictionary[j] for j in i] for i in chinese_sents]
+english_sents_indexes = [[dictionary[j] for j in i] for i in english_sents]
 
 english_sents_bags = []
 chinese_sents_bags = []
@@ -108,6 +109,9 @@ for sent in tqdm(chinese_sents_indexes):
         temp[word] += 1
     # append
     chinese_sents_bags.append(temp)
+
+with open("./data/dataset.dat", "wb") as df:
+    pickle.dump(df, [english_sents_bags, chinese_sents_bags])
 
 # Combine bags together
 input_data = english_sents_bags+chinese_sents_bags
@@ -135,7 +139,7 @@ class Autoencoder(nn.Module):
 
     def forward(self, x) -> dict:
         # Generate results
-        encoded_result = F.relu(self.in_layer(x), dim=1)
+        encoded_result = F.relu(self.in_layer(x))
         output_result = F.relu(self.out_layer(encoded_result))
 
         # Create reconstruction loss
