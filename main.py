@@ -19,11 +19,11 @@ TRAINING=True
 
 # Create the config
 config = {
-    "midsize": 128,
+    "midsize": 1024,
     "gamma": 0,
     "batch_size": 4,
     "epochs": 4,
-    "lr": 1e-3,
+    "lr": 1e-2,
 }
 
 if TRAINING:
