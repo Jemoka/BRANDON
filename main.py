@@ -71,47 +71,9 @@ chinese_sents = sinica_treebank.sents()
 # Word dimention size
 num_words = len(english_words)+len(chinese_words)
 
-# Create indexing of the words using a collection
-# Create auto counting up defaultdict collection
-dictionary = defaultdict(lambda:len(dictionary))
-# Iterate through words and initialize
-for word in english_words + chinese_words:
-    dictionary[word]
-# Freeze
-dictionary = dict(dictionary)
-# Reverse it!
-reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-
-# Create bags of words
-chinese_sents_indexes = [[dictionary[j] for j in i] for i in chinese_sents]
-english_sents_indexes = [[dictionary[j] for j in i] for i in english_sents]
-
-english_sents_bags = []
-chinese_sents_bags = []
-
-# One hot encode and bag
-# English bags
-for sent in tqdm(english_sents_indexes):
-    # Create temp array
-    temp = [0 for _ in range(num_words)]
-    # Create temp array of stuff
-    for word in sent:
-        temp[word] += 1
-    # append
-    english_sents_bags.append(temp)
-
-# Chinese bags
-for sent in tqdm(chinese_sents_indexes):
-    # Create temp array
-    temp = [0 for _ in range(num_words)]
-    # Create temp array of stuff
-    for word in sent:
-        temp[word] += 1
-    # append
-    chinese_sents_bags.append(temp)
-
-with open("./data/dataset.dat", "wb") as df:
-    pickle.dump(df, [english_sents_bags, chinese_sents_bags])
+# Load in data
+with open("./data/dataset.dat", "rb") as df:
+    english_sents_bags, chinese_sents_bags = pickle.load(df)
 
 # Combine bags together
 input_data = english_sents_bags+chinese_sents_bags
