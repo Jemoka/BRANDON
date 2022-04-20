@@ -76,10 +76,10 @@ with open("./data/europarl-es_en/europarl-v7.es-en.es", "r") as df:
 tokenizer = ToktokTokenizer()
 # Tokenize each one with tqdm tracking progress
 tokenized_data_es = []
-for i in tqdm(raw_data_es[:10000]):
+for i in tqdm(raw_data_es[:100000]):
     tokenized_data_es.append(tokenizer.tokenize(i))
 tokenized_data_en = []
-for i in tqdm(raw_data_en[:10000]):
+for i in tqdm(raw_data_en[:100000]):
     tokenized_data_en.append(tokenizer.tokenize(i))
 
 # Build the twoway dicts
@@ -151,6 +151,9 @@ for i in range(0,len(input_data_en)-BATCH_SIZE,BATCH_SIZE):
 #     data["input_data_es"] = input_data_es
 #     data = pickle.dump(data, df)
 
+# Trim unneneded data
+del input_data_es, input_data_en, tokenized_data_es, tokenized_data_en
+
 # Create the model!
 class Autoencoder(nn.Module):
 
@@ -218,7 +221,7 @@ else:
     # load stuff
     def getbin(word):
         # get the id
-        word_id = dictionary[word]
+        word_id = english_dict[word]
         # create temp array
         temp = [0 for _ in range(num_words)]
         # set positive result as 1
