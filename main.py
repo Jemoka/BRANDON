@@ -135,8 +135,8 @@ for i in tqdm(tokenized_data_es):
 input_data_batches = []
 for i in range(0,len(input_data_en)-BATCH_SIZE,BATCH_SIZE):
     # For each batch, append the pairwise en es
-    input_data_batches.append((torch.stack(input_data_es[i:i+BATCH_SIZE]),
-                               torch.stack(input_data_en[i:i+BATCH_SIZE])))
+    input_data_batches.append((torch.stack(input_data_en[i:i+BATCH_SIZE]),
+                               torch.stack(input_data_es[i:i+BATCH_SIZE])))
 
 # Temp dump data
 # with open("./data/europarl-es_en/tokenized.bin", "wb") as df:
@@ -180,7 +180,7 @@ class Autoencoder(nn.Module):
 
 if TRAINING:
     # Instatiate a model
-    model = Autoencoder(num_words_es, num_words_en, MIDSIZE).to(DEVICE)
+    model = Autoencoder(num_words_en, num_words_es, MIDSIZE).to(DEVICE)
     model.train()
     run.watch(model)
 
