@@ -27,8 +27,8 @@ config = {
 }
 
 if TRAINING:
-    # run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-    run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+    # run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 else:
     run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 
