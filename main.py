@@ -8,8 +8,8 @@ import numpy as np
 import torch.nn as nn
 from torch.optim import Adam
 import torch.nn.functional as F
-from nltk.corpus import brown
-from nltk.corpus import sinica_treebank
+
+from nltk.tokenize.toktok import ToktokTokenizer
 
 from tqdm import tqdm
 
@@ -50,70 +50,129 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # 1. create a autoencoding mechanism, f(g(x))
 #      where null space of g muuuch smaller than
 #      the null space of x or f.
-# 2. create a shift factor gamma=0.1
-# 3. create a loss function
-#      (1-gamma)*rec_loss+(gamma)*-1*x*log(f(g(x))
-#      this is the gamma-scaled sum between the entropy
-#      of the middle layer plus reconstruction error
-# 4. ok, now, autoencode two target languages. Say
-#      chinese and english. Let's see what happens.
+# 2. train an autoencoder in the same manner as
+#      described in (P et al. 2014). Sidenote:
+#      sorry, that's literally their name.
+#      Sarath Chandar A.P.
+# 3. abalate. Figure what the median activations
+#      are doing---i.e. activating a single middle
+#      layer would result in what changes? Also
+#      what words result in more of those changes?
 
 tensify = lambda x: torch.tensor(x).float()
 
-# Get a bunch of English
-english_words = list(set(brown.words()))
-english_sents = brown.sents()
+# Load in the data!
+raw_data_es = []
+raw_data_en = []
 
-# Get a bunch of Chinese
-chinese_words = list(set(sinica_treebank.words()))
-chinese_sents = sinica_treebank.sents()
+with open("./data/europarl-es_en/europarl-v7.es-en.en", "r") as df:
+    raw_data_en = [i.strip() for i in df.readlines()]
 
-# Word dimention size
-num_words = len(english_words)+len(chinese_words)
+with open("./data/europarl-es_en/europarl-v7.es-en.es", "r") as df:
+    raw_data_es = [i.strip() for i in df.readlines()]
 
-# Load in data
-with open("./data/dataset.dat", "rb") as df:
-    english_sents_bags, chinese_sents_bags = pickle.load(df)
+# Tokenize them data!
+# Instantiate a toktok
+tokenizer = ToktokTokenizer()
+# Tokenize each one with tqdm tracking progress
+tokenized_data_es = []
+for i in tqdm(raw_data_es[:10000]):
+    tokenized_data_es.append(tokenizer.tokenize(i))
+tokenized_data_en = []
+for i in tqdm(raw_data_en[:10000]):
+    tokenized_data_en.append(tokenizer.tokenize(i))
 
-# Combine bags together
-input_data = english_sents_bags+chinese_sents_bags
-# Shuffle the data
-random.shuffle(input_data)
-# Create batches
+# Build the twoway dicts
+spanish_dict = defaultdict(lambda: len(spanish_dict))
+english_dict = defaultdict(lambda: len(english_dict))
+
+for i in tokenized_data_es:
+    for j in i:
+        spanish_dict[j]
+
+for i in tokenized_data_en:
+    for j in i:
+        english_dict[j]
+
+# Freeze wordlist
+english_dict = dict(english_dict)
+spanish_dict = dict(spanish_dict)
+
+# Reverse wordlist
+english_dict_inv = dict(zip(english_dict.values(), english_dict.keys()))
+spanish_dict_inv = dict(zip(spanish_dict.values(), spanish_dict.keys()))
+
+# Get num words
+num_words_es = len(spanish_dict)
+num_words_en = len(english_dict)
+
+# Creating binary bags of words
+# English...
+input_data_en = []
+for i in tqdm(tokenized_data_en):
+    # Create a temporary zeros array with words
+    temp = torch.zeros(num_words_en)
+    # For every word, set it as being activated
+    # if used
+    for word in i:
+        temp[english_dict[word]] = 1
+    # Append!
+    input_data_en.append(temp)
+
+# Spanish...
+input_data_es = []
+for i in tqdm(tokenized_data_es):
+    # Create a temporary zeros array with words
+    temp = torch.zeros(num_words_es)
+    # For every word, set it as being activated
+    # if used
+    for word in i:
+        temp[spanish_dict[word]] = 1
+    # Append!
+    input_data_es.append(temp)
+
+# Create input data batches
 input_data_batches = []
-# Create groups of batches
-for i in range(0, len(input_data)-BATCH_SIZE):
-    input_data_batches.append(input_data[i:i+BATCH_SIZE])
+for i in range(0,len(input_data_en)-BATCH_SIZE,BATCH_SIZE):
+    # For each batch, append the pairwise en es
+    input_data_batches.append((torch.stack(input_data_es[i:i+BATCH_SIZE]),
+                               torch.stack(input_data_en[i:i+BATCH_SIZE])))
 
-# Create the model
+# Temp dump data
+# with open("./data/europarl-es_en/tokenized.bin", "wb") as df:
+#     data = {}
+#     data["english_dict"] = english_dict 
+#     data["spanish_dict"] = spanish_dict 
+#     data["tokenized_data_es"] = tokenized_data_es 
+#     data["tokenized_data_en"] = tokenized_data_en 
+#     data["num_words_es"] = num_words_es
+#     data["num_words_en"] = num_words_en
+#     data["input_data_en"] = input_data_en
+#     data["input_data_es"] = input_data_es
+#     data = pickle.dump(data, df)
+
+# Create the model!
 class Autoencoder(nn.Module):
 
-    def __init__(self, vocab_size:int, midsize:int, gamma:float=0.2, epsilon:float=1e-7) -> None:
+    def __init__(self, vocab_size_in:int, vocab_size_out:int, midsize:int) -> None:
         super().__init__()
 
-        self.vocab_size = vocab_size
+        self.vocab_size_in = vocab_size_in
+        self.vocab_size_out = vocab_size_out
         self.midsize = midsize
-        self.gamma = gamma
-        self.epsilon = epsilon
 
-        self.in_layer = nn.Linear(vocab_size, midsize)
-        self.out_layer = nn.Linear(midsize, vocab_size)
+        self.in_layer = nn.Linear(vocab_size_in, midsize)
+        self.out_layer = nn.Linear(midsize, vocab_size_out)
 
-    def forward(self, x) -> dict:
+    def forward(self, x,label=None) -> dict:
         # Generate results
-        encoded_result = F.relu(self.in_layer(x))
+        encoded_result = F.sigmoid(self.in_layer(x))
         output_result = F.relu(self.out_layer(encoded_result))
-
-        # Create reconstruction loss
-        rec_loss = torch.mean((output_result-x)**2)
-        entropy = torch.mean(-1*torch.log(encoded_result+self.epsilon)*(encoded_result+self.epsilon))
-
-        # Give gamma
-        gamma = self.gamma
 
         # Return final loss
         return {"logits": encoded_result,
-                "loss": (1-self.gamma)*rec_loss + gamma*entropy}
+                        # reconstruction loss is loss
+                "loss": torch.mean((output_result-label)**2)}
 
     def decode(self, x) -> any:
         # Decode and return
@@ -121,7 +180,7 @@ class Autoencoder(nn.Module):
 
 if TRAINING:
     # Instatiate a model
-    model = Autoencoder(num_words, MIDSIZE, GAMMA).to(DEVICE)
+    model = Autoencoder(num_words_es, num_words_en, MIDSIZE).to(DEVICE)
     model.train()
     run.watch(model)
 
@@ -133,9 +192,9 @@ if TRAINING:
         random.shuffle(input_data_batches)
         print(f"Training epoch {i}")
         # Iterate through batches
-        for e, batch in enumerate(tqdm(input_data_batches)):
+        for e, (i,o) in enumerate(tqdm(input_data_batches)):
             # Pass data through
-            res = model(tensify(batch).to(DEVICE))
+            res = model(i.to(DEVICE), label=o.to(DEVICE))
             # Backpropergate! Ha!
             res["loss"].backward()
             # Step!
