@@ -15,13 +15,13 @@ from tqdm import tqdm
 
 import wandb
 
-TRAINING=True
+TRAINING=False
 
 # Create the config
 config = {
-    "midsize": 1024,
+    "midsize": 128,
     "batch_size": 4,
-    "epochs": 4,
+    "epochs": 5,
     "lr": 1e-2,
 }
 
@@ -214,7 +214,7 @@ if TRAINING:
 
 else:
     # load the model
-    model = torch.load("./models/genial-wood-16")
+    model = torch.load("./models/pleasant-snow-18")
     
     # instantiate model
     model.eval()
@@ -222,7 +222,7 @@ else:
     # load stuff
     def getbin(word):
         # Create a temporary zeros array with words
-        temp = torch.zeros(num_words_es)
+        temp = torch.zeros(num_words_en)
         # For every word, set it as being activated
         # if used
         temp[english_dict[word]] = 1
@@ -234,7 +234,17 @@ else:
         # Get bins
         bin = getbin(word)
         # Pass it
-        print(model(bin.to(DEVICE), label=bin.to(DEVICE))["logits"])
+        print(model(bin.to(DEVICE))["logits"])
+
+    # Loop
+    while True:
+        try: 
+            word = input("> ")
+            if word.strip() == "q":
+                break
+            do(word.strip())
+        except:
+            pass
 
     # breakpoint?
     breakpoint()
