@@ -76,10 +76,10 @@ with open("./data/europarl-es_en/europarl-v7.es-en.es", "r") as df:
 tokenizer = ToktokTokenizer()
 # Tokenize each one with tqdm tracking progress
 tokenized_data_es = []
-for i in tqdm(raw_data_es[:50000]):
+for i in tqdm(raw_data_es[:10000]):
     tokenized_data_es.append(tokenizer.tokenize(i))
 tokenized_data_en = []
-for i in tqdm(raw_data_en[:50000]):
+for i in tqdm(raw_data_en[:10000]):
     tokenized_data_en.append(tokenizer.tokenize(i))
 
 # Build the twoway dicts
