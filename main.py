@@ -20,7 +20,6 @@ TRAINING=True
 # Create the config
 config = {
     "midsize": 1024,
-    "gamma": 0,
     "batch_size": 4,
     "epochs": 4,
     "lr": 1e-2,
@@ -36,7 +35,6 @@ config = run.config
 
 # Unroll out the constants
 MIDSIZE = config.midsize
-GAMMA = config.gamma
 BATCH_SIZE = config.batch_size
 EPOCHS = config.epochs
 LR = config.lr
@@ -173,9 +171,12 @@ class Autoencoder(nn.Module):
         output_result = F.relu(self.out_layer(encoded_result))
 
         # Return final loss
-        return {"logits": encoded_result,
-                        # reconstruction loss is loss
-                "loss": torch.mean((output_result-label)**2)}
+        if self.training:
+            return {"logits": encoded_result,
+                            # reconstruction loss is loss
+                    "loss": torch.mean((output_result-label)**2)}
+        else:
+            return {"logits": encoded_result}
 
     def decode(self, x) -> any:
         # Decode and return
@@ -213,21 +214,27 @@ if TRAINING:
 
 else:
     # load the model
-    model = torch.load("./models/trim-totem-4")
+    model = torch.load("./models/genial-wood-16")
     
     # instantiate model
     model.eval()
 
     # load stuff
     def getbin(word):
-        # get the id
-        word_id = english_dict[word]
-        # create temp array
-        temp = [0 for _ in range(num_words)]
-        # set positive result as 1
-        temp[word_id] = 1
+        # Create a temporary zeros array with words
+        temp = torch.zeros(num_words_es)
+        # For every word, set it as being activated
+        # if used
+        temp[english_dict[word]] = 1
 
-        return tensify(temp)
+        return temp
+
+    # eval
+    def do(word):
+        # Get bins
+        bin = getbin(word)
+        # Pass it
+        print(model(bin.to(DEVICE), label=bin.to(DEVICE))["logits"])
 
     # breakpoint?
     breakpoint()
