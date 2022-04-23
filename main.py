@@ -26,8 +26,8 @@ config = {
 }
 
 if TRAINING:
-    # run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-    run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+    # run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 else:
     run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 
@@ -165,17 +165,28 @@ class Autoencoder(nn.Module):
         self.in_layer = nn.Linear(vocab_size_in, midsize)
         self.out_layer = nn.Linear(midsize, vocab_size_out)
 
+    @staticmethod
+    def __sigmoid_crossentropy(logits, labels):
+        # uses calculations in 
+        # https://www.tensorflow.org/api_docs/python/tf/nn/sigmoid_cross_entropy_with_logits
+
+        x = logits
+        z = labels
+
+        return torch.mean(F.relu(x) - x * z + torch.log(1 + torch.exp(-torch.abs(x))))
+
+
     def forward(self, x,label=None) -> dict:
         # Generate results
-        encoded_result = F.sigmoid(self.in_layer(x))
+        encoded_result = torch.sigmoid(self.in_layer(x))
         output_result = F.relu(self.out_layer(encoded_result))
 
         # Return final loss
         if self.training:
             return {"logits": encoded_result,
                     "outputs": output_result,
-                            # reconstruction loss is loss
-                    "loss": torch.mean((output_result-label)**2)}
+                            # reconstruction loss is crossentropy with logits
+                    "loss": self.__sigmoid_crossentropy(output_result, label)}
         else:
             return {"logits": encoded_result,
                     "outputs": output_result}
@@ -216,7 +227,7 @@ if TRAINING:
 
 else:
     # load the model
-    model = torch.load("./models/pleasant-snow-18")
+    model = torch.load("./models/classic-snowflake-20")
     
     # instantiate model
     model.eval()
@@ -239,6 +250,8 @@ else:
         res = model(bin.to(DEVICE))
         print("logits", res["logits"],
               "outputs", res["outputs"])
+
+        return (res["logits"], res["outputs"])
 
     # Loop
     def dowhile():
