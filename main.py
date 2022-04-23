@@ -15,19 +15,19 @@ from tqdm import tqdm
 
 import wandb
 
-TRAINING=False
+TRAINING=True
 
 # Create the config
 config = {
-    "midsize": 128,
+    "midsize": 64,
     "batch_size": 4,
     "epochs": 5,
     "lr": 1e-2,
 }
 
 if TRAINING:
-    run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
-    # run = wandb.init(project="BRANDON", entity="jemoka", config=config)
+    # run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
+    run = wandb.init(project="BRANDON", entity="jemoka", config=config)
 else:
     run = wandb.init(project="BRANDON", entity="jemoka", config=config, mode="disabled")
 
@@ -173,10 +173,12 @@ class Autoencoder(nn.Module):
         # Return final loss
         if self.training:
             return {"logits": encoded_result,
+                    "outputs": output_result,
                             # reconstruction loss is loss
                     "loss": torch.mean((output_result-label)**2)}
         else:
-            return {"logits": encoded_result}
+            return {"logits": encoded_result,
+                    "outputs": output_result}
 
     def decode(self, x) -> any:
         # Decode and return
@@ -234,19 +236,23 @@ else:
         # Get bins
         bin = getbin(word)
         # Pass it
-        print(model(bin.to(DEVICE))["logits"])
+        res = model(bin.to(DEVICE))
+        print("logits", res["logits"],
+              "outputs", res["outputs"])
 
     # Loop
-    while True:
-        try: 
-            word = input("> ")
-            if word.strip() == "q":
-                break
-            do(word.strip())
-        except:
-            pass
+    def dowhile():
+        while True:
+            try: 
+                word = input("> ")
+                if word.strip() == "q":
+                    break
+                do(word.strip())
+            except:
+                pass
 
     # breakpoint?
+    dowhile()
     breakpoint()
 
 # quantumish — Today at 3:17 PM
@@ -255,4 +261,5 @@ else:
 # Action Research!
 # not
 # like
+# mention, regard
 # programming
